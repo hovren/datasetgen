@@ -53,3 +53,37 @@ def create_bounds(times):
     #bounds.append(times[-1] + 0.5*(times[-1] - times[-2]))
     bounds.append(float('inf'))
     return bounds
+
+def position_from_sfm(sfm):
+        view_times = np.array([v.time for v in sfm.views])
+        view_positions = np.vstack([v.position for v in sfm.views]).T
+        return view_times, view_positions
+
+def orientation_from_sfm(sfm):
+    view_times = np.array([v.time for v in sfm.views])
+    view_orientations = QuaternionArray([v.orientation for v in sfm.views])
+    view_orientations = view_orientations.unflipped()
+    # Resampling is important to get good splines
+    view_orientations, view_times = resample_quaternion_array(view_orientations, view_times)
+    return view_times, view_orientations
+
+def orientation_from_gyro(gyro_data, gyro_times):
+    n, d = gyro_data.shape
+
+    if d == 3:
+        dt = float(gyro_times[1] - gyro_times[0])
+        if not np.allclose(np.diff(gyro_times), dt):
+            raise ValueError("gyro timestamps must be uniformly sampled")
+
+        qdata = crisp.fastintegrate.integrate_gyro_quaternion_uniform(gyro_data, dt)
+        Q = QuaternionArray(qdata)
+    elif d == 4:
+        Q = QuaternionArray(gyro_data)
+    else:
+        raise ValueError("Gyro data must have shape (N,3) or (N, 4), was {}".format(gyro_data.shape))
+
+    return gyro_times, Q.unflipped()
+
+def landmarks_from_sfm(sfm):
+    view_times = [view.time for view in sfm.views]
+    return view_times, sfm.landmarks

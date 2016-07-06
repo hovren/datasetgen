@@ -5,7 +5,8 @@ import numpy as np
 from ..maths.quaternions import QuaternionArray
 
 from .dataset import Dataset, DatasetError
-from .utils import resample_quaternion_array, quaternion_array_interpolate, quaternion_slerp
+from .utils import resample_quaternion_array, quaternion_array_interpolate, quaternion_slerp, landmarks_from_sfm, \
+                   position_from_sfm, orientation_from_gyro, orientation_from_sfm
 
 
 class DatasetBuilder(object):
@@ -100,7 +101,8 @@ class DatasetBuilder(object):
         ss = self.selected_sources
 
         if ss['landmark'] == 'sfm':
-            ds.landmarks_from_sfm(self._sfm)
+            view_times, landmarks = landmarks_from_sfm(self._sfm)
+            ds.set_landmarks(view_times, landmarks)
         elif ss['landmark'] in self.LANDMARK_SOURCES:
             raise DatasetError("Loading landmarks from source '{}' is not yet implemented".format(ss['landmark']))
         else:
@@ -108,14 +110,17 @@ class DatasetBuilder(object):
 
         if ss['orientation'] == 'imu':
                 orientations, timestamps = self._sfm_aligned_imu_orientations()
-                ds.orientation_from_gyro(orientations, timestamps)
+                timestamps, orientations = orientation_from_gyro(orientations, timestamps)
+                ds.set_orientation_data(timestamps, orientations)
         elif ss['orientation'] == 'sfm':
-            ds.orientation_from_sfm(self._sfm)
+            timestamps, orientations = orientation_from_sfm(self._sfm)
+            ds.set_orientation_data(timestamps, orientations)
         else:
             raise DatasetError("'{}' source can not be used for orientations!".format(ss['orientation']))
 
         if ss['position'] == 'sfm':
-            ds.position_from_sfm(self._sfm)
+            timestamps, positions = position_from_sfm(self._sfm)
+            ds.set_position_data(timestamps, positions)
         else:
             raise DatasetError("'{}' source can not be used for position!".format(ss['position']))
 

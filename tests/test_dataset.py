@@ -13,7 +13,7 @@ from datasetgen.maths.quaternions import Quaternion, QuaternionArray
 
 from datasetgen.dataset import Dataset, DatasetBuilder, DatasetError
 from datasetgen.dataset.utils import quaternion_slerp, quaternion_array_interpolate, resample_quaternion_array, \
-    create_bounds
+    create_bounds, orientation_from_gyro, orientation_from_sfm, position_from_sfm, landmarks_from_sfm
 from datasetgen.sfm import SfmResult
 from datasetgen.sfm.sfm import VisualSfmResult, OpenMvgResult
 from tests.helpers import random_orientation, unpack_quat, gyro_data_to_quaternion_array, find_landmark
@@ -31,7 +31,7 @@ CAMERA_FPS = 30.
 class DatasetGyroTests(unittest.TestCase):
     def test_orientation_from_gyro(self):
         ds = Dataset()
-        ds.orientation_from_gyro(GYRO_EXAMPLE_DATA, GYRO_EXAMPLE_TIMES)
+        ds.set_orientation_data(*orientation_from_gyro(GYRO_EXAMPLE_DATA, GYRO_EXAMPLE_TIMES))
         t0 = max(GYRO_EXAMPLE_TIMES[0], ds.trajectory.startTime)
         t1 = min(GYRO_EXAMPLE_TIMES[-1], ds.trajectory.endTime)
         i0 = np.flatnonzero(GYRO_EXAMPLE_TIMES >= t0)[0]
@@ -63,13 +63,13 @@ class DatasetGyroTests(unittest.TestCase):
             gyro_data = np.zeros(shape)
             gyro_data[:, 0] = 1. # To get an OK quaternion
             ds = Dataset()
-            ds.orientation_from_gyro(gyro_data, gyro_times)
+            ds.set_orientatation_data(*orientation_from_gyro(gyro_data, gyro_times))
 
         for shape in invalid_shapes:
             gyro_data = np.zeros(shape)
             ds = Dataset()
             with self.assertRaises(DatasetError):
-                ds.orientation_from_gyro(gyro_data, gyro_times)
+                ds.set_orientation_data(*orientation_from_gyro(gyro_data, gyro_times))
 
     def test_orientation_from_gyro_uniform_only(self):
         N = 100
@@ -79,11 +79,11 @@ class DatasetGyroTests(unittest.TestCase):
         gyro_times_invalid.sort()
 
         ds = Dataset()
-        ds.orientation_from_gyro(gyro_data, gyro_times_valid)
+        ds.set_orientation_data(*orientation_from_gyro(gyro_data, gyro_times_valid))
 
         ds = Dataset()
-        with self.assertRaises(DatasetError):
-            ds.orientation_from_gyro(gyro_data, gyro_times_invalid)
+        with self.assertRaises(ValueError):
+            ds.set_orientation_data(*orientation_from_gyro(gyro_data, gyro_times_invalid))
 
     def test_resample_quaternion_array(self):
         sfm = VisualSfmResult.from_file(NVM_EXAMPLE, camera_fps=CAMERA_FPS)
@@ -103,9 +103,9 @@ class DatasetGyroTests(unittest.TestCase):
 class AbstractDatasetSfmTestMixin(object):
     def load_dataset(self):
         self.ds = Dataset()
-        self.ds.landmarks_from_sfm(self.sfm)
-        self.ds.position_from_sfm(self.sfm)
-        self.ds.orientation_from_sfm(self.sfm)
+        self.ds.set_landmarks(*landmarks_from_sfm(self.sfm))
+        self.ds.set_position_data(*position_from_sfm(self.sfm))
+        self.ds.set_orientation_data(*orientation_from_sfm(self.sfm))
 
     def test_landmarks_loaded(self):
         self.assertEqual(len(self.ds.landmarks), len(self.sfm.landmarks))

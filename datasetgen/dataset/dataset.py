@@ -66,50 +66,20 @@ class Dataset(object):
         self._landmark_bounds = None
         self.name = None
 
-    def position_from_sfm(self, sfm):
-        view_times = np.array([v.time for v in sfm.views])
-        view_positions = np.vstack([v.position for v in sfm.views]).T
-        ts = TimeSeries(view_times, view_positions)
-        self._position_data = ts
+    def set_position_data(self, times, data):
+        self._position_data = TimeSeries(times, data)
         self._update_trajectory()
 
-    def orientation_from_sfm(self, sfm):
-        view_times = np.array([v.time for v in sfm.views])
-        view_orientations = QuaternionArray([v.orientation for v in sfm.views])
-        view_orientations = view_orientations.unflipped()
-        # Resampling is important to get good splines
-        view_orientations, view_times = resample_quaternion_array(view_orientations, view_times)
-        ts = TimeSeries(view_times, view_orientations)
-        self._orientation_data = ts
+    def set_orientation_data(self, times, data):
+        self._orientation_data = TimeSeries(times, data)
         self._update_trajectory()
 
-    def orientation_from_gyro(self, gyro_data, gyro_times):
-        n, d = gyro_data.shape
-
-        if d == 3:
-            dt = float(gyro_times[1] - gyro_times[0])
-            if not np.allclose(np.diff(gyro_times), dt):
-                raise DatasetError("gyro timestamps must be uniformly sampled")
-
-            qdata = crisp.fastintegrate.integrate_gyro_quaternion_uniform(gyro_data, dt)
-            Q = QuaternionArray(qdata)
-        elif d == 4:
-            Q = QuaternionArray(gyro_data)
-        else:
-            raise DatasetError("Gyro data must have shape (N,3) or (N, 4), was {}".format(gyro_data.shape))
-
-        ts = TimeSeries(gyro_times, Q.unflipped())
-        self._orientation_data = ts
-        self._update_trajectory()
-
-    def landmarks_from_sfm(self, sfm):
-        view_times = [view.time for view in sfm.views]
+    def set_landmarks(self, view_times, landmarks):
         if not np.all(np.diff(view_times) > 0):
             raise DatasetError("View times are not increasing monotonically with id")
-
         self._landmark_bounds = create_bounds(view_times)
-        for lm in sfm.landmarks:
-            self.landmarks.append(lm)
+        self.landmarks.clear()
+        self.landmarks.extend(landmarks)
 
     def visible_landmarks(self, t):
         i = bisect.bisect_left(self._landmark_bounds, t)
@@ -147,42 +117,6 @@ class Dataset(object):
                 colors[i] = landmark.color[:3] # Skip alpha
             landmarks_group['positions'] = positions
             landmarks_group['colors'] = colors
-
-    def visualize(self, draw_orientations=False, draw_axes=False):
-        from mayavi import mlab
-        t_min = self.trajectory.startTime
-        t_max = self.trajectory.endTime
-        t_samples = (t_max - t_min) * 50
-        t = np.linspace(t_min, t_max, t_samples)
-        positions = self.trajectory.position(t)
-        landmark_data = np.vstack([lm.position for lm in self.landmarks]).T
-        landmark_scalars = np.arange(len(self.landmarks))
-
-        landmark_colors = np.vstack([lm.color for lm in self.landmarks])
-        orientation_times = np.linspace(t_min, t_max, num=50)
-        orientations = self.trajectory.rotation(orientation_times)
-
-        # World to camera transform is
-        # Xc = RXw - Rt where R is the camera orientation and position respectively
-        # Camera to world is thus
-        # Xw = RtXc + t
-        zc = np.array([0, 0, 1.]).reshape(3,1)
-        zw = [np.dot(np.array(q.toMatrix()).T, zc).reshape(3,1) for q in orientations]
-        quiver_pos = self.trajectory.position(orientation_times)
-        quiver_data = 0.5 * np.hstack(zw)
-
-        pts = mlab.points3d(landmark_data[0], landmark_data[1], landmark_data[2],
-                            landmark_scalars, scale_factor=0.2, scale_mode='none')
-        pts.glyph.color_mode = 'color_by_scalar'
-        pts.module_manager.scalar_lut_manager.lut.table = landmark_colors
-
-        plot_obj = mlab.plot3d(positions[0], positions[1], positions[2], color=(1, 0, 0), line_width=5.0, tube_radius=None)
-        if draw_axes:
-            mlab.axes(plot_obj)
-        if draw_orientations:
-            mlab.quiver3d(quiver_pos[0], quiver_pos[1], quiver_pos[2],
-                          quiver_data[0], quiver_data[1], quiver_data[2], color=(1, 1, 0))
-        mlab.show()
 
     def rescaled(self, scale_factor):
         ds_r = Dataset()
