@@ -63,12 +63,12 @@ class DatasetGyroTests(unittest.TestCase):
             gyro_data = np.zeros(shape)
             gyro_data[:, 0] = 1. # To get an OK quaternion
             ds = Dataset()
-            ds.set_orientatation_data(*orientation_from_gyro(gyro_data, gyro_times))
+            ds.set_orientation_data(*orientation_from_gyro(gyro_data, gyro_times))
 
         for shape in invalid_shapes:
             gyro_data = np.zeros(shape)
             ds = Dataset()
-            with self.assertRaises(DatasetError):
+            with self.assertRaises(ValueError):
                 ds.set_orientation_data(*orientation_from_gyro(gyro_data, gyro_times))
 
     def test_orientation_from_gyro_uniform_only(self):
