@@ -5,7 +5,8 @@ import unittest
 import numpy.testing as nt
 import numpy as np
 
-from datasetgen.sfm import SfmResult, SfmResultError, VisualSfmResult, OpenMvgResult
+from datasetgen.sfm import SfmResult, SfmResultError
+from datasetgen.sfm.sfm import VisualSfmResult, OpenMvgResult
 from datasetgen.maths.quaternions import Quaternion
 
 CAMERA_FPS = 30.

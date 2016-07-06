@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import numpy.testing as nt
 
-from datasetgen.openmvg import SfMData
+from datasetgen.sfm.openmvg import SfMData
 
 POSE_143 = (
     np.array([[-0.8913088105868323,

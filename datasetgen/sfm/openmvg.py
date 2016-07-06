@@ -5,8 +5,8 @@ from collections import namedtuple
 
 import cv2
 import numpy as np
-from .trajectories.splined import SplinedPositionTrajectory, SampledPositionTrajectory
-from .utilities.time_series import TimeSeries
+from datasetgen.trajectories.splined import SplinedPositionTrajectory, SampledPositionTrajectory
+from datasetgen.utilities.time_series import TimeSeries
 
 
 class View(namedtuple('View', ['id', 'filename', 'intrinsic', 'R', 'c'])):

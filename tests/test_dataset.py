@@ -11,9 +11,11 @@ import numpy.testing as nt
 from crisp.fastintegrate import integrate_gyro_quaternion_uniform
 from datasetgen.maths.quaternions import Quaternion, QuaternionArray
 
-from datasetgen.dataset import Dataset, DatasetBuilder, DatasetError, \
-    resample_quaternion_array, quaternion_slerp, quaternion_array_interpolate, create_bounds
-from datasetgen.sfm import SfmResult, VisualSfmResult, OpenMvgResult
+from datasetgen.dataset import Dataset, DatasetBuilder, DatasetError
+from datasetgen.dataset.utils import quaternion_slerp, quaternion_array_interpolate, resample_quaternion_array, \
+    create_bounds
+from datasetgen.sfm import SfmResult
+from datasetgen.sfm.sfm import VisualSfmResult, OpenMvgResult
 from tests.helpers import random_orientation, unpack_quat, gyro_data_to_quaternion_array, find_landmark
 
 NVM_EXAMPLE = 'example.nvm'

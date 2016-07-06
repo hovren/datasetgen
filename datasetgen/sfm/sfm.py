@@ -5,9 +5,9 @@ from collections import namedtuple
 import re
 
 import numpy as np
-from .maths.quaternions import Quaternion
+from ..maths.quaternions import Quaternion
 
-from .dataset import Landmark
+from ..dataset import Landmark
 from .openmvg import SfMData
 
 class View(object):
