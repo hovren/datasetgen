@@ -1,0 +1,16 @@
+# Python temps
+**.pyc
+/.ipynb_checkpoints/
+/__pycache__/
+**.cpython-*.so
+
+# Jetbrains IDE
+/.idea/
+
+#Build directory
+/build/
+
+# Cython generated sources
+/datasetgen/maths/quaternions.c
+/datasetgen/maths/quat_splines.c
+/datasetgen/maths/vectors.c
