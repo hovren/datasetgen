@@ -27,10 +27,10 @@ def openmvg_compute_features(sfmdir, framedir, preset='NORMAL'):
     run_openmvg('ComputeFeatures', '-o {framedir} -i {sfmdir}/sfm_data.json -m SIFT --describerPreset {preset}'.format(sfmdir=sfmdir,framedir=framedir, preset=preset))
 
 def openmvg_compute_matches(sfmdir, framedir):
-    run_openmvg('ComputeMatches', '-i {dir}/sfm_data.json -o {framedir} -r 0.8 -g e -f 1'.format(dir=sfmdir, framedir=framedir))
+    run_openmvg('ComputeMatches', '-i {dir}/sfm_data.json -o {framedir} -r 0.8 -g e'.format(dir=sfmdir, framedir=framedir))
 
-def openmvg_global_sfm(sfmdir, framedir=None):
-    run_openmvg('GlobalSfM', '-i {sfmdir}/sfm_data.json  -m {sfmdir} -o {sfmdir}'.format(sfmdir=sfmdir, framedir=framedir))
+def openmvg_global_sfm(sfmdir, framedir):
+    run_openmvg('GlobalSfM', '-i {sfmdir}/sfm_data.json  -m {framedir} -o {sfmdir}'.format(sfmdir=sfmdir, framedir=framedir))
 
 args = parser.parse_args()
 
