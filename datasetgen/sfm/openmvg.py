@@ -63,7 +63,7 @@ class SfMData(object):
     def colorize(cls, instance, root_path):
         image_structure_map = {}
         for s_id, s in enumerate(instance.structure):
-            view_id, image_point = s.observations.items()[0]
+            view_id, image_point = next(item for item in s.observations.items())
             view = instance.views[view_id]
             assert view.id == view_id
             if view.filename in image_structure_map:
@@ -72,7 +72,7 @@ class SfMData(object):
                 image_structure_map[view.filename] = [(s_id, image_point), ]
 
         #img = np.zeros((1080, 1920, 3))
-        for filename, structures in image_structure_map.iteritems():
+        for filename, structures in image_structure_map.items():
             filepath = os.path.join(root_path, filename)
             img = cv2.imread(filepath, cv2.IMREAD_COLOR)
             assert img.ndim == 3
