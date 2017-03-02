@@ -120,10 +120,14 @@ class SfMData(object):
             i_id = vdata['id_intrinsic']
             intr = self.intrinsics[i_id]
             filename = vdata['filename']
-            p_id = vdata['id_pose']
-            R, c = poses[p_id]
-            Rws = R.T
-            pws = c
+            try:
+                p_id = vdata['id_pose']
+                R, c = poses[p_id]
+                Rws = R.T
+                pws = c
+            except KeyError:
+                Rws = None
+                pws = None
             #view = View(v_id, filename, intr, R, c)
             view = View(v_id, filename, intr, Rws, pws)
             return view

@@ -198,10 +198,12 @@ class OpenMvgResult(SfmResult):
         view_remap = {}
         for omvg_view in sfm_data.views:
             time = omvg_view.framenumber / camera_fps
-            q = Quaternion.fromMatrix(omvg_view.R)
-            p = omvg_view.c
-            new_id = instance.add_view(time, p, q)
-            view_remap[omvg_view.id] = new_id
+            # Views without poses are not interesting
+            if omvg_view.R is not None:
+                q = Quaternion.fromMatrix(omvg_view.R)
+                p = omvg_view.c
+                new_id = instance.add_view(time, p, q)
+                view_remap[omvg_view.id] = new_id
 
         for s in sfm_data.structure:
             X = s.point

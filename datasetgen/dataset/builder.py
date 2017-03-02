@@ -2,8 +2,11 @@ from __future__ import print_function, division
 
 import crisp.fastintegrate
 import numpy as np
-from ..maths.quaternions import QuaternionArray
 
+from ..utilities.time_series import TimeSeries
+from ..maths.quaternions import QuaternionArray
+from ..trajectories.sampled import SampledTrajectory
+from ..trajectories.splined import SplinedTrajectory
 from .dataset import Dataset, DatasetError
 from .utils import resample_quaternion_array, quaternion_array_interpolate, quaternion_slerp, landmarks_from_sfm, \
                    position_from_sfm, orientation_from_gyro, orientation_from_sfm
@@ -93,8 +96,23 @@ class DatasetBuilder(object):
         q = crisp.fastintegrate.integrate_gyro_quaternion_uniform(gyro_part, dt, initial=q_initial)
         return q, gyro_part_times
 
+    def _align_knots(self, rot_times, rot_data, pos_times, pos_data):
+        samp = SampledTrajectory(rotationKeyFrames=TimeSeries(rot_times, rot_data),
+                                 positionKeyFrames=TimeSeries(pos_times, pos_data))
+        splined = SplinedTrajectory(samp, smoothRotations=False)
+        if len(rot_times) > len(pos_times):
+            pos_times = rot_times
+            pos_data = splined.position(pos_times)
+        elif len(pos_times) > len(rot_times):
+            rot_times = pos_times
+            rot_data = splined.rotation(rot_times).array
+        elif not np.all(rot_times == pos_times):
+            pos_times = rot_times
+            pos_data = splined.position(pos_times)
 
-    def build(self):
+        return rot_times, rot_data, pos_times, pos_data
+
+    def build(self, align_knots=False):
         if not self._can_build():
             raise DatasetError("Must select all sources")
         ds = Dataset()
@@ -109,19 +127,27 @@ class DatasetBuilder(object):
             raise DatasetError("Source type '{}' can not be used for landmarks".format(ss['landmark']))
 
         if ss['orientation'] == 'imu':
-                orientations, timestamps = self._sfm_aligned_imu_orientations()
-                timestamps, orientations = orientation_from_gyro(orientations, timestamps)
-                ds.set_orientation_data(timestamps, orientations)
+                orientations, orientation_timestamps = self._sfm_aligned_imu_orientations()
+                orientation_timestamps, orientations = orientation_from_gyro(orientations, orientation_timestamps)
+
         elif ss['orientation'] == 'sfm':
-            timestamps, orientations = orientation_from_sfm(self._sfm)
-            ds.set_orientation_data(timestamps, orientations)
+            orientation_timestamps, orientations = orientation_from_sfm(self._sfm)
         else:
             raise DatasetError("'{}' source can not be used for orientations!".format(ss['orientation']))
 
         if ss['position'] == 'sfm':
-            timestamps, positions = position_from_sfm(self._sfm)
-            ds.set_position_data(timestamps, positions)
+            position_timestamps, positions = position_from_sfm(self._sfm)
         else:
             raise DatasetError("'{}' source can not be used for position!".format(ss['position']))
+
+        # Resample to uniform spline knot times
+        if align_knots:
+            orientation_timestamps, orientations, position_timestamps, positions = self._align_knots(orientation_timestamps,
+                                                                                                     orientations,
+                                                                                                     position_timestamps,
+                                                                                                     positions)
+
+        ds.set_orientation_data(orientation_timestamps, orientations)
+        ds.set_position_data(position_timestamps, positions)
 
         return ds
